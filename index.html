@@ -46,6 +46,13 @@ main{padding:30px 36px;max-width:1500px;width:100%;margin:auto}.top{display:flex
 </main></div>
 <div class="auth-wrap" id="loadingScreen" style="display:none"><div class="auth-card"><div class="auth-brand">my<span>money</span>.</div><p id="loadingText">Loading your secure account…</p></div></div>
 <div class="auth-wrap" id="configError" style="display:none"><div class="auth-card"><div class="auth-brand">my<span>money</span>.</div><h1>Setup required</h1><p id="configErrorText" class="error">Supabase configuration is missing.</p></div></div>
+<div class="overlay" id="overlay"><div class="modal" style="background:#fff;border-radius:16px;padding:24px;width:min(440px,100%)"><h2 id="modalTitle" style="margin:0 0 18px;font-size:19px">Add transaction</h2><form id="txForm">
+<div class="field"><label>DESCRIPTION</label><input id="desc" required maxlength="70" placeholder="e.g. Grocery shopping"></div>
+<div class="field"><label>AMOUNT (₹)</label><input id="amount" required type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+<div class="field"><label>TYPE</label><select id="type"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+<div class="field"><label>CATEGORY</label><select id="category"><option>Food</option><option>Transport</option><option>Shopping</option><option>Bills</option><option>Health</option><option>Entertainment</option><option>Salary</option><option>Freelance</option><option>Investment</option><option>Other</option></select></div>
+<div class="field"><label>DATE</label><input id="date" type="date" required></div>
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button type="button" class="secondary" id="cancelBtn">Cancel</button><button class="primary" type="submit">Save transaction</button></div></form></div></div>
 <script>
 const SUPABASE_URL='https://zduxiwzexfmpisvooaxp.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_a3BeNmdUnc7u_75A7CLAMw_WuqW5xtj';
@@ -99,11 +106,5 @@ $('exportBtn').onclick=()=>{const csv=['Description,Amount,Type,Category,Date',.
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>go(b.dataset.goto));
 document.addEventListener('DOMContentLoaded',async()=>{try{if(!window.supabase){throw new Error('Supabase library did not load. Refresh the page.')}sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);showOnly('loadingScreen');const {data,error}=await sb.auth.getSession();if(error)throw error;if(data.session){await enterApp(data.session.user)}else{showOnly('authScreen');setAuthMode('login')}sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){user=null;tx=[];budgetsByMonth={};showOnly('authScreen');setAuthMode('login')}})}catch(err){$('configErrorText').textContent=err.message;showOnly('configError')}});
 </script>
-<div class="overlay" id="overlay"><div class="modal" style="background:#fff;border-radius:16px;padding:24px;width:min(440px,100%)"><h2 id="modalTitle" style="margin:0 0 18px;font-size:19px">Add transaction</h2><form id="txForm">
-<div class="field"><label>DESCRIPTION</label><input id="desc" required maxlength="70" placeholder="e.g. Grocery shopping"></div>
-<div class="field"><label>AMOUNT (₹)</label><input id="amount" required type="number" min="0.01" step="0.01" placeholder="0.00"></div>
-<div class="field"><label>TYPE</label><select id="type"><option value="expense">Expense</option><option value="income">Income</option></select></div>
-<div class="field"><label>CATEGORY</label><select id="category"><option>Food</option><option>Transport</option><option>Shopping</option><option>Bills</option><option>Health</option><option>Entertainment</option><option>Salary</option><option>Freelance</option><option>Investment</option><option>Other</option></select></div>
-<div class="field"><label>DATE</label><input id="date" type="date" required></div>
-<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button type="button" class="secondary" id="cancelBtn">Cancel</button><button class="primary" type="submit">Save transaction</button></div></form></div></div>
+
 </body></html>
