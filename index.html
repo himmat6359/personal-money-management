@@ -957,7 +957,7 @@ Private data is protected by your account.
 <thead>
 <tr>
 <th>Transaction</th>
-<th>Category</th>
+<th>Payment</th>
 <th>Date</th>
 <th>Time</th>
 <th style="text-align:right">Amount</th>
@@ -990,7 +990,7 @@ Private data is protected by your account.
 <thead>
 <tr>
 <th>Transaction</th>
-<th>Category</th>
+<th>Payment</th>
 <th>Type</th>
 <th>Date</th>
 <th>Time</th>
@@ -1834,7 +1834,7 @@ function rows(list, actions) {
 
             <td><b>${safe(t.description)}</b></td>
 
-            <td><span class="pill">${safe(t.category)}</span></td>
+            <td><span class="pill">${safe(t.payment_method || 'Cash')}</span></td>
 
             ${actions ? `<td>${safe(t.type)}</td>` : ''}
 
@@ -2378,14 +2378,14 @@ $('exportBtn').onclick = () => {
 
     const csv = [
 
-        'Description,Amount,Type,Category,Date,Time',
+        'Description,Amount,Type,Payment,Date,Time',
 
         ...tx.map(t => [
 
             t.description,
             t.amount,
             t.type,
-            t.category,
+            t.payment_method || 'Cash',
             getDate(t),
             t.transaction_time || ''
 
@@ -2472,12 +2472,12 @@ $('pdfBtn').onclick = () => {
     doc.text('Transaction Details', 14, y);
     doc.autoTable({
         startY: y + 4,
-        head: [['Date', 'Time', 'Description', 'Category', 'Type', 'Amount']],
+        head: [['Date', 'Time', 'Description', 'Payment', 'Type', 'Amount']],
         body: list.map(t => [
             getDate(t),
             t.transaction_time || '',
             t.description,
-            t.category,
+            t.payment_method || 'Cash',
             t.type,
             (t.type === 'income' ? '+' : '-') + money(t.amount)
         ]),
