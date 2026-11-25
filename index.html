@@ -555,11 +555,15 @@ text-overflow:ellipsis
 }
 
 .logout{
-background:#f0f3f6;
-color:#526071;
+background:#7f1d1d;
+color:#fff;
 padding:10px 12px;
-border-radius:8px
+border-radius:8px;
+font-weight:650;
+transition:background .2s ease
 }
+.logout:hover{background:#991b1b}
+.logout:disabled{opacity:.6;cursor:not-allowed}
 
 @media(max-width:1000px){
 .cards{grid-template-columns:repeat(2,1fr)}
@@ -835,6 +839,20 @@ Choose how much you want to spend this month.
 </div>
 
 <div class="field">
+<label>BUDGET TYPE</label>
+<select id="budgetType">
+<option value="Salary">Salary</option>
+<option value="Other" selected>Other</option>
+<option value="Food">Food</option>
+<option value="Travel">Travel</option>
+<option value="Shopping">Shopping</option>
+<option value="Bills">Bills</option>
+<option value="Emergency">Emergency</option>
+<option value="Custom">Custom</option>
+</select>
+</div>
+
+<div class="field">
 <label>MONTHLY BUDGET (₹)</label>
 <input id="budgetInput" type="number" min="0" placeholder="e.g. 25000">
 </div>
@@ -842,6 +860,8 @@ Choose how much you want to spend this month.
 <button class="primary" id="saveBudget">Save budget</button>
 
 <p class="section-sub" id="budgetSaved"></p>
+<div class="section-title" style="margin-top:22px">Saved budget types</div>
+<div id="budgetList"></div>
 
 </div>
 
@@ -1130,11 +1150,24 @@ function getDate(t) {
 }
 
 function monthTx() {
-
     const m = $('monthFilter').value;
-
     return tx.filter(t => getDate(t).startsWith(m));
+}
 
+function getMonthlyBudgetTotal(month) {
+    return Object.entries(budgetsByMonth)
+        .filter(([key]) => key.startsWith(month + '|'))
+        .reduce((total, [, item]) => total + Number(item.amount || 0), 0);
+}
+
+function renderBudgetList() {
+    const month = $('monthFilter').value;
+    const items = Object.entries(budgetsByMonth)
+        .filter(([key]) => key.startsWith(month + '|'))
+        .map(([, item]) => item);
+    $('budgetList').innerHTML = items.length
+        ? items.map(item => `<div class="catrow"><div class="catname"><b>${safe(item.type)}</b><small>${safe(month)}</small></div><div class="catamt">${money(item.amount)}</div></div>`).join('')
+        : '<p class="section-sub">No budget types saved for this month yet.</p>';
 }
 
 /* ==========================================
@@ -1163,14 +1196,13 @@ async function loadData() {
     budgetsByMonth = {};
 
     (br.data || []).forEach(b => {
-
-        budgetsByMonth[b.month] = Number(b.amount);
-
+        const key = b.month + '|' + (b.budget_type || 'Other');
+        budgetsByMonth[key] = { id: b.id, amount: Number(b.amount), type: b.budget_type || 'Other' };
     });
 
-    budget = budgetsByMonth[$('monthFilter').value] || 0;
-
-    $('budgetInput').value = budget || '';
+    budget = getMonthlyBudgetTotal($('monthFilter').value);
+    $('budgetInput').value = budgetsByMonth[$('monthFilter').value + '|' + $('budgetType').value]?.amount || '';
+    renderBudgetList();
 
     render();
 
@@ -1197,9 +1229,10 @@ function render() {
     $('expense').textContent = money(s.expense);
     $('savingRate').textContent = rate.toFixed(0) + '%';
 
-    budget = budgetsByMonth[$('monthFilter').value] || 0;
+    budget = getMonthlyBudgetTotal($('monthFilter').value);
 
-    $('budgetInput').value = budget || '';
+    $('budgetInput').value = budgetsByMonth[$('monthFilter').value + '|' + $('budgetType').value]?.amount || '';
+    renderBudgetList();
 
     $('budgetNumbers').textContent =
         money(s.expense) + ' / ' + money(budget);
@@ -1257,7 +1290,7 @@ function render() {
         ) &&
         (typ === 'all' || t.type === typ)
 
-    ).sort((a, b) => getDate(b).localeCompare(getDate(a)));
+    ).sort((a, b) => (getDate(b) + ' ' + (b.transaction_time || '00:00:00')).localeCompare(getDate(a) + ' ' + (a.transaction_time || '00:00:00')));
 
     $('allRows').innerHTML = rows(filtered, true);
 
@@ -1680,14 +1713,22 @@ $('allRows').addEventListener('click', e => {
 
 $('monthFilter').onchange = () => {
 
-    budget = budgetsByMonth[$('monthFilter').value] || 0;
+    budget = getMonthlyBudgetTotal($('monthFilter').value);
 
-    $('budgetInput').value = budget || '';
+    $('budgetInput').value = budgetsByMonth[$('monthFilter').value + '|' + $('budgetType').value]?.amount || '';
 
     $('budgetSaved').textContent = '';
+    renderBudgetList();
 
     render();
 
+};
+
+/* Budget type selector */
+$('budgetType').onchange = () => {
+    const key = $('monthFilter').value + '|' + $('budgetType').value;
+    $('budgetInput').value = budgetsByMonth[key]?.amount || '';
+    $('budgetSaved').textContent = '';
 };
 
 /* SEARCH AND FILTER */
@@ -1707,10 +1748,12 @@ $('saveBudget').onclick = async () => {
     const m = $('monthFilter').value;
 
     const amount = Number($('budgetInput').value || 0);
+    const budgetType = $('budgetType').value;
+    const budgetKey = m + '|' + budgetType;
 
-    if (!Number.isFinite(amount) || amount < 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
 
-        alert('Please enter a valid budget amount.');
+        alert('Please enter a budget amount greater than zero.');
 
         return;
 
@@ -1728,19 +1771,21 @@ $('saveBudget').onclick = async () => {
 
                 user_id: user.id,
                 month: m,
+                budget_type: budgetType,
                 amount: amount
 
             }, {
 
-                onConflict: 'user_id,month'
+                onConflict: 'user_id,month,budget_type'
 
             });
 
         if (error) throw error;
 
-        budgetsByMonth[m] = amount;
+        budgetsByMonth[budgetKey] = { amount, type: budgetType };
 
-        budget = amount;
+        budget = getMonthlyBudgetTotal(m);
+        renderBudgetList();
 
         render();
 
