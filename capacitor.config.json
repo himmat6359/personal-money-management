@@ -3,6 +3,7 @@
   "appName": "MyMoney",
   "webDir": "www",
   "server": {
+    "url": "https://personal-money-management-rosy.vercel.app",
     "androidScheme": "https"
   },
   "android": {
