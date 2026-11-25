@@ -2123,20 +2123,39 @@ $('authForm').addEventListener('submit', async e => {
 
 async function enterApp(u) {
 
+    // Only users explicitly activated by the administrator can enter MyMoney.
+    const { data: access, error: accessError } = await sb
+        .from('admin_registration_notifications')
+        .select('is_active')
+        .eq('user_id', u.id)
+        .maybeSingle();
+
+    if (accessError) {
+        await sb.auth.signOut();
+        user = null;
+        showOnly('authScreen');
+        setAuthMode('login');
+        authMessage('Unable to verify account access. Please contact the administrator.', true);
+        return;
+    }
+
+    if (!access || access.is_active !== true) {
+        await sb.auth.signOut();
+        user = null;
+        showOnly('authScreen');
+        setAuthMode('login');
+        authMessage('Your account is not active yet. Please contact the administrator.', true);
+        return;
+    }
+
     user = u;
-
     $('userEmail').textContent = u.email || '';
-
     showOnly('app');
 
     try {
-
         await loadData();
-
     } catch (err) {
-
         alert('Could not load your data: ' + err.message);
-
     }
 
 }
