@@ -456,7 +456,7 @@ display:none;
 align-items:center;
 justify-content:center;
 padding:18px;
-z-index:10
+z-index:200
 }
 
 .overlay.show{display:flex}
@@ -475,7 +475,7 @@ box-shadow:0 20px 70px #0003
 /* Keep transaction actions visible while scrolling long forms */
 #txForm > div:last-child{
 position:sticky;
-bottom:-1px;
+bottom:0;
 background:#fff;
 padding:12px 0 4px;
 margin-top:14px !important;
@@ -730,7 +730,7 @@ justify-content:space-between
     animation:mobileSheetIn .2s ease-out;
   }
   #txForm > div:last-child {
-    position:sticky; bottom:calc(-16px - env(safe-area-inset-bottom));
+    position:sticky; bottom:0;
     margin-left:-18px !important; margin-right:-18px !important;
     padding:12px 18px calc(12px + env(safe-area-inset-bottom));
     background:#fff; box-shadow:0 -6px 16px rgba(20,35,50,.06);
