@@ -565,6 +565,75 @@ transition:background .2s ease
 .logout:hover{background:#991b1b}
 .logout:disabled{opacity:.6;cursor:not-allowed}
 
+/* ==========================================
+   RESPONSIVE LAYOUT - MOBILE, TABLET & DESKTOP
+========================================== */
+
+/* Large tablets and compact laptops */
+@media (max-width: 1200px) {
+    .app { grid-template-columns: 210px minmax(0, 1fr); }
+    main { padding: 26px 24px; }
+    .cards { gap: 12px; }
+    .metric { font-size: 22px; }
+}
+
+/* Tablets */
+@media (max-width: 1000px) {
+    .app { grid-template-columns: 1fr; }
+    aside { padding: 14px 18px; gap: 12px; }
+    .brand { padding: 4px 8px; }
+    .nav { display: flex; gap: 6px; overflow-x: auto; }
+    .nav button { white-space: nowrap; width: auto; flex: 0 0 auto; }
+    .navlabel, .sidefoot { display: none; }
+    main { max-width: none; padding: 24px; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid2 { grid-template-columns: 1fr; }
+}
+
+/* Phones */
+@media (max-width: 680px) {
+    .app { display: none; }
+    aside { padding: 12px; }
+    .nav { padding-bottom: 3px; }
+    .nav button { padding: 9px 11px; font-size: 12px; }
+    main { padding: 16px 12px 24px; }
+    .top { align-items: stretch; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+    .top h1 { font-size: 22px; }
+    .actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .actions > .month { width: 100%; min-width: 0; }
+    .actions > #addBtn { width: 100%; padding: 10px 8px; }
+    .userbox { grid-column: 1 / -1; width: 100%; justify-content: space-between; }
+    .useremail { max-width: calc(100% - 90px); }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .card { padding: 13px; border-radius: 12px; min-width: 0; }
+    .metric { font-size: clamp(17px, 5vw, 22px); overflow-wrap: anywhere; }
+    .metric-head { gap: 6px; font-size: 11px; }
+    .metric-icon { width: 29px; height: 29px; flex: 0 0 29px; }
+    .grid2 { gap: 10px; }
+    .chartbox { gap: 7px; padding-left: 2px; padding-right: 2px; }
+    .legend { flex-wrap: wrap; }
+    .tablehead { padding: 15px 13px; gap: 8px; }
+    th, td { padding: 11px 12px; }
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; }
+    .toolbar input, .toolbar select { min-width: 0; width: 100%; }
+    .modal { padding: 19px; max-height: calc(100vh - 28px); overflow-y: auto; }
+    .auth-card { padding: 22px; }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+    .cards { grid-template-columns: 1fr; }
+    .actions { grid-template-columns: 1fr; }
+    .userbox { grid-column: auto; }
+    .toolbar { grid-template-columns: 1fr; }
+    .nav button { padding: 8px 9px; font-size: 11px; }
+}
+
+/* Wide desktop screens */
+@media (min-width: 1500px) {
+    main { padding-left: 44px; padding-right: 44px; }
+}
+
 @media(max-width:1000px){
 .cards{grid-template-columns:repeat(2,1fr)}
 .grid2{grid-template-columns:1fr}
