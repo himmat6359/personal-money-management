@@ -755,6 +755,20 @@ justify-content:space-between
   .toolbar { grid-template-columns:minmax(0,1fr); }
 }
 
+
+/* Refined transaction selectors and compact dashboard */
+.segmented-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.segment-btn{min-height:48px;border:1px solid var(--line);border-radius:11px;background:#f7f9fc;color:#526071;font-weight:750;letter-spacing:.35px;transition:all .18s ease}
+.segment-btn[data-type-choice="income"].active{background:#e8f8f1;border:2px solid #159b72;color:#08734f}
+.segment-btn[data-type-choice="expense"].active{background:#fff0f0;border:2px solid #e15b64;color:#bd3540}
+.segment-btn[data-payment-choice="cash"].active{background:#edf4ff;border:2px solid #4d74df;color:#3158bd}
+.segment-btn[data-payment-choice="upi"].active{background:#f1edff;border:2px solid #7955d9;color:#6540c2}
+.payment-cards{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:-4px}
+.payment-cards .card{padding:15px 18px}
+.payment-cards .metric{font-size:23px;margin:9px 0 2px}
+.grid2{grid-template-columns:1.1fr 1fr}
+.chartbox{height:155px;margin-top:12px;padding-bottom:22px}
+@media(max-width:760px){.payment-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.payment-cards .card{padding:11px 9px}.payment-cards .metric{font-size:clamp(14px,4vw,19px)}.chartbox{height:145px}}
 </style>
 </head>
 
@@ -877,6 +891,12 @@ Private data is protected by your account.
 <div class="hint">Of this month's income</div>
 </div>
 
+</div>
+
+<div class="cards payment-cards">
+<div class="card"><div class="metric-head">Total Amount</div><div class="metric" id="totalAmount">₹0</div><div class="hint">Net available balance</div></div>
+<div class="card"><div class="metric-head">Cash Balance</div><div class="metric positive" id="cashBalance">₹0</div><div class="hint">Cash income minus expense</div></div>
+<div class="card"><div class="metric-head">UPI Balance</div><div class="metric" id="upiBalance">₹0</div><div class="hint">UPI income minus expense</div></div>
 </div>
 
 <div class="grid2">
@@ -1165,6 +1185,15 @@ Export your transactions for spreadsheets or record keeping.
 <form id="txForm">
 
 <div class="field">
+<label>TYPE</label>
+<div class="segmented-options" role="group" aria-label="Transaction type">
+<button type="button" class="segment-btn" data-type-choice="income">＋ INCOME</button>
+<button type="button" class="segment-btn active" data-type-choice="expense">− EXPENSE</button>
+</div>
+<select id="type" hidden aria-hidden="true"><option value="income">Income</option><option value="expense" selected>Expense</option></select>
+</div>
+
+<div class="field">
 <label>DESCRIPTION</label>
 <input id="desc" required maxlength="70" placeholder="e.g. Grocery shopping">
 </div>
@@ -1175,28 +1204,14 @@ Export your transactions for spreadsheets or record keeping.
 </div>
 
 <div class="field">
-<label>TYPE</label>
-<select id="type">
-<option value="expense">Expense</option>
-<option value="income">Income</option>
-</select>
+<label>PAYMENT TYPE</label>
+<div class="segmented-options" role="group" aria-label="Payment type">
+<button type="button" class="segment-btn active" data-payment-choice="cash">▣ CASH</button>
+<button type="button" class="segment-btn" data-payment-choice="upi">↗ UPI</button>
 </div>
-
-<div class="field">
-<label>CATEGORY</label>
-<select id="category">
-<option>Food</option>
-<option>Transport</option>
-<option>Shopping</option>
-<option>Bills</option>
-<option>Health</option>
-<option>Entertainment</option>
-<option>Salary</option>
-<option>Freelance</option>
-<option>Investment</option>
-<option>Other</option>
-</select>
+<select id="paymentMethod" hidden aria-hidden="true"><option value="Cash" selected>Cash</option><option value="UPI">UPI</option></select>
 </div>
+<input id="category" type="hidden" value="Other">
 
 <div class="field">
 <label>DATE</label>
@@ -1491,6 +1506,11 @@ function render() {
         : 0;
 
     $('balance').textContent = money(balance);
+    $('totalAmount').textContent = money(balance);
+    const cashBalance = list.filter(t => (t.payment_method || 'Cash') === 'Cash').reduce((total, t) => total + (t.type === 'income' ? 1 : -1) * Number(t.amount), 0);
+    const upiBalance = list.filter(t => t.payment_method === 'UPI').reduce((total, t) => total + (t.type === 'income' ? 1 : -1) * Number(t.amount), 0);
+    $('cashBalance').textContent = money(cashBalance);
+    $('upiBalance').textContent = money(upiBalance);
     $('income').textContent = money(s.income);
     $('expense').textContent = money(s.expense);
     $('savingRate').textContent = rate.toFixed(0) + '%';
@@ -1944,13 +1964,36 @@ function showModal() {
     $('desc').value = '';
     $('amount').value = '';
     $('type').value = 'expense';
-    $('category').value = 'Food';
+    $('category').value = 'Other';
+    $('paymentMethod').value = 'Cash';
+    syncTransactionButtons();
     $('date').value = dateStr(today);
     $('time').value = timeStr(new Date());
 
     $('overlay').classList.add('show');
 
 }
+
+function syncTransactionButtons() {
+    document.querySelectorAll('[data-type-choice]').forEach(button => {
+        button.classList.toggle('active', button.dataset.typeChoice === $('type').value);
+    });
+    document.querySelectorAll('[data-payment-choice]').forEach(button => {
+        button.classList.toggle('active', button.dataset.paymentChoice === $('paymentMethod').value.toLowerCase());
+    });
+}
+document.querySelectorAll('[data-type-choice]').forEach(button => {
+    button.addEventListener('click', () => {
+        $('type').value = button.dataset.typeChoice;
+        syncTransactionButtons();
+    });
+});
+document.querySelectorAll('[data-payment-choice]').forEach(button => {
+    button.addEventListener('click', () => {
+        $('paymentMethod').value = button.dataset.paymentChoice === 'upi' ? 'UPI' : 'Cash';
+        syncTransactionButtons();
+    });
+});
 
 function editTx(id) {
     const item = tx.find(t => String(t.id) === String(id));
@@ -1963,6 +2006,8 @@ function editTx(id) {
     $('amount').value = item.amount;
     $('type').value = item.type;
     $('category').value = item.category || 'Other';
+    $('paymentMethod').value = item.payment_method || 'Cash';
+    syncTransactionButtons();
     $('date').value = getDate(item);
     $('time').value = item.transaction_time || '00:00:00';
     $('overlay').classList.add('show');
@@ -2161,7 +2206,8 @@ $('txForm').onsubmit = async e => {
         description: $('desc').value.trim(),
         amount: Number($('amount').value),
         type: $('type').value,
-        category: $('category').value,
+        category: 'Other',
+        payment_method: $('paymentMethod').value,
         transaction_date: $('date').value,
         transaction_time: $('time').value
 
