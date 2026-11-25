@@ -7,6 +7,8 @@
 <title>MyMoney — Personal Finance</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 :root{
@@ -773,6 +775,7 @@ Private data is protected by your account.
 <th>Transaction</th>
 <th>Category</th>
 <th>Date</th>
+<th>Time</th>
 <th style="text-align:right">Amount</th>
 </tr>
 </thead>
@@ -806,6 +809,7 @@ Private data is protected by your account.
 <th>Category</th>
 <th>Type</th>
 <th>Date</th>
+<th>Time</th>
 <th style="text-align:right">Amount</th>
 <th></th>
 </tr>
@@ -854,8 +858,9 @@ Choose how much you want to spend this month.
 Export your transactions for spreadsheets or record keeping.
 </div>
 
-<div style="margin-top:20px">
-<button class="primary" id="exportBtn">↓ Export transactions CSV</button>
+<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+<button class="primary" id="pdfBtn">↓ Download monthly report PDF</button>
+<button class="secondary" id="exportBtn">↓ Export transactions CSV</button>
 </div>
 
 <div id="reportSummary" style="margin-top:22px"></div>
@@ -931,6 +936,11 @@ Export your transactions for spreadsheets or record keeping.
 <input id="date" type="date" required>
 </div>
 
+<div class="field">
+<label>TIME (HOURS : MINUTES : SECONDS)</label>
+<input id="time" type="time" step="1" required>
+</div>
+
 <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
 
 <button type="button" class="secondary" id="cancelBtn">Cancel</button>
@@ -970,6 +980,19 @@ const dateStr = d =>
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
 
+const timeStr = d =>
+    String(d.getHours()).padStart(2, '0') + ':' +
+    String(d.getMinutes()).padStart(2, '0') + ':' +
+    String(d.getSeconds()).padStart(2, '0');
+
+const displayTime = value => {
+    if (!value) return '—';
+    const parts = String(value).split(':');
+    const d = new Date();
+    d.setHours(Number(parts[0]), Number(parts[1]), Number(parts[2] || 0));
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
 let sb = null;
 let user = null;
 let tx = [];
@@ -983,6 +1006,7 @@ let budgetsByMonth = {};
 
 $('monthFilter').value = monthStr(today);
 $('date').value = dateStr(today);
+$('time').value = timeStr(today);
 
 /* ==========================================
    SCREEN MANAGEMENT
@@ -1123,9 +1147,8 @@ async function loadData() {
 
         sb.from('transactions')
             .select('*')
-            .order('transaction_date', {
-                ascending: false
-            }),
+            .order('transaction_date', { ascending: false })
+            .order('transaction_time', { ascending: false }),
 
         sb.from('budgets')
             .select('*')
@@ -1217,7 +1240,7 @@ function render() {
         : '<div class="empty">No expenses yet</div>';
 
     const recent = list.slice()
-        .sort((a, b) => getDate(b).localeCompare(getDate(a)))
+        .sort((a, b) => (getDate(b) + ' ' + (b.transaction_time || '00:00:00')).localeCompare(getDate(a) + ' ' + (a.transaction_time || '00:00:00')))
         .slice(0, 5);
 
     $('recentRows').innerHTML = rows(recent, false);
@@ -1240,18 +1263,20 @@ function render() {
 
     drawChart();
 
+    const reportCats = {};
+    list.filter(t => t.type === 'expense').forEach(t => {
+        reportCats[t.category] = (reportCats[t.category] || 0) + Number(t.amount);
+    });
     $('reportSummary').innerHTML = `
-        <b>${safe($('monthFilter').value)}</b>
-        <p class="section-sub">
-            Income: ${money(s.income)}
-            &nbsp; · &nbsp;
-            Expenses: ${money(s.expense)}
-            &nbsp; · &nbsp;
-            Net: ${money(balance)}
-        </p>
-        <p class="section-sub">
-            ${list.length} transactions in selected month.
-        </p>
+        <b>${safe($('monthFilter').value)} Monthly Summary</b>
+        <div class="cards" style="margin-top:14px">
+            <div class="card"><div class="hint">Total income</div><div class="metric positive">${money(s.income)}</div></div>
+            <div class="card"><div class="hint">Total expenses</div><div class="metric negative">${money(s.expense)}</div></div>
+            <div class="card"><div class="hint">Net savings / balance</div><div class="metric">${money(balance)}</div></div>
+            <div class="card"><div class="hint">Transactions</div><div class="metric">${list.length}</div></div>
+        </div>
+        <div class="section-title" style="margin-top:18px">Category-wise expenses</div>
+        ${Object.entries(reportCats).sort((a,b) => b[1]-a[1]).map(([name,value]) => `<p class="section-sub">${safe(name)}: <b>${money(value)}</b></p>`).join('') || '<p class="section-sub">No expenses for this month.</p>'}
     `;
 
 }
@@ -1266,7 +1291,7 @@ function rows(list, actions) {
 
         return `
             <tr>
-                <td colspan="${actions ? 6 : 4}" class="empty">
+                <td colspan="${actions ? 7 : 5}" class="empty">
                     No transactions found. Add your first transaction to get started.
                 </td>
             </tr>
@@ -1285,6 +1310,8 @@ function rows(list, actions) {
             ${actions ? `<td>${safe(t.type)}</td>` : ''}
 
             <td>${safe(getDate(t))}</td>
+
+            <td>${safe(displayTime(t.transaction_time))}</td>
 
             <td class="amount ${t.type === 'income' ? 'positive' : 'negative'}">
                 ${t.type === 'income' ? '+' : '−'}${money(t.amount)}
@@ -1402,6 +1429,7 @@ function showModal() {
     $('type').value = 'expense';
     $('category').value = 'Food';
     $('date').value = dateStr(today);
+    $('time').value = timeStr(new Date());
 
     $('overlay').classList.add('show');
 
@@ -1597,7 +1625,8 @@ $('txForm').onsubmit = async e => {
         amount: Number($('amount').value),
         type: $('type').value,
         category: $('category').value,
-        transaction_date: $('date').value
+        transaction_date: $('date').value,
+        transaction_time: $('time').value
 
     };
 
@@ -1738,7 +1767,7 @@ $('exportBtn').onclick = () => {
 
     const csv = [
 
-        'Description,Amount,Type,Category,Date',
+        'Description,Amount,Type,Category,Date,Time',
 
         ...tx.map(t => [
 
@@ -1746,7 +1775,8 @@ $('exportBtn').onclick = () => {
             t.amount,
             t.type,
             t.category,
-            getDate(t)
+            getDate(t),
+            t.transaction_time || ''
 
         ].map(v =>
             '"' + String(v).replace(/"/g, '""') + '"'
@@ -1771,6 +1801,81 @@ $('exportBtn').onclick = () => {
 
     URL.revokeObjectURL(url);
 
+};
+
+/* ==========================================
+   MONTHLY SUMMARY PDF
+========================================== */
+
+$('pdfBtn').onclick = () => {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('PDF library could not load. Please refresh and try again.');
+        return;
+    }
+
+    const selectedMonth = $('monthFilter').value;
+    const list = monthTx().slice().sort((a, b) =>
+        (getDate(a) + ' ' + (a.transaction_time || '00:00:00'))
+            .localeCompare(getDate(b) + ' ' + (b.transaction_time || '00:00:00'))
+    );
+    const totals = sums(list);
+    const net = totals.income - totals.expense;
+    const categories = {};
+    list.filter(t => t.type === 'expense').forEach(t => {
+        categories[t.category] = (categories[t.category] || 0) + Number(t.amount);
+    });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text('MyMoney - Monthly Summary', 14, 18);
+    doc.setFontSize(11);
+    doc.text('Month: ' + selectedMonth, 14, 27);
+    doc.text('Generated: ' + new Date().toLocaleString('en-IN'), 14, 34);
+
+    doc.autoTable({
+        startY: 42,
+        head: [['Summary', 'Amount']],
+        body: [
+            ['Total Income', money(totals.income)],
+            ['Total Expenses', money(totals.expense)],
+            ['Net Savings / Balance', money(net)],
+            ['Number of Transactions', String(list.length)]
+        ],
+        theme: 'grid'
+    });
+
+    let y = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(13);
+    doc.text('Category-wise Expenses', 14, y);
+    doc.autoTable({
+        startY: y + 4,
+        head: [['Category', 'Total Expense']],
+        body: Object.entries(categories).sort((a, b) => b[1] - a[1])
+            .map(([category, amount]) => [category, money(amount)]),
+        theme: 'striped'
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(13);
+    doc.text('Transaction Details', 14, y);
+    doc.autoTable({
+        startY: y + 4,
+        head: [['Date', 'Time', 'Description', 'Category', 'Type', 'Amount']],
+        body: list.map(t => [
+            getDate(t),
+            t.transaction_time || '',
+            t.description,
+            t.category,
+            t.type,
+            (t.type === 'income' ? '+' : '-') + money(t.amount)
+        ]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fontSize: 8 },
+        theme: 'grid'
+    });
+
+    doc.save('MyMoney-Monthly-Summary-' + selectedMonth + '.pdf');
 };
 
 /* ==========================================
