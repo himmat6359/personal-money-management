@@ -442,10 +442,9 @@ font-weight:650
 .field input,
 .field select{width:100%}
 
-.del{
-color:var(--red);
-background:transparent
-}
+.del{color:var(--red);background:transparent}
+.edit{color:var(--blue);background:#eef2ff;padding:6px 9px;border-radius:7px;margin-right:6px;font-weight:650}
+.row-actions{white-space:nowrap}
 
 .overlay{
 position:fixed;
@@ -1088,6 +1087,7 @@ let tx = [];
 let budget = 0;
 let authMode = 'login';
 let budgetsByMonth = {};
+let editingTxId = null;
 
 /* ==========================================
    INITIAL VALUES
@@ -1421,9 +1421,10 @@ function rows(list, actions) {
 
             ${actions ? `
                 <td>
-                    <button class="del" data-delete-id="${safe(t.id)}">
-                        Delete
-                    </button>
+                    <span class="row-actions">
+                    <button class="edit" data-edit-id="${safe(t.id)}" type="button">Edit</button>
+                    <button class="del" data-delete-id="${safe(t.id)}" type="button">Delete</button>
+                    </span>
                 </td>
             ` : ''}
 
@@ -1526,6 +1527,9 @@ function go(v) {
 
 function showModal() {
 
+    editingTxId = null;
+    $('modalTitle').textContent = 'Add transaction';
+    $('txForm').querySelector('[type="submit"]').textContent = 'Save transaction';
     $('desc').value = '';
     $('amount').value = '';
     $('type').value = 'expense';
@@ -1535,6 +1539,22 @@ function showModal() {
 
     $('overlay').classList.add('show');
 
+}
+
+function editTx(id) {
+    const item = tx.find(t => String(t.id) === String(id));
+    if (!item) return;
+
+    editingTxId = item.id;
+    $('modalTitle').textContent = 'Edit transaction';
+    $('txForm').querySelector('[type="submit"]').textContent = 'Update transaction';
+    $('desc').value = item.description || '';
+    $('amount').value = item.amount;
+    $('type').value = item.type;
+    $('category').value = item.category || 'Other';
+    $('date').value = getDate(item);
+    $('time').value = item.transaction_time || '00:00:00';
+    $('overlay').classList.add('show');
 }
 
 /* ==========================================
@@ -1738,15 +1758,30 @@ $('txForm').onsubmit = async e => {
 
     try {
 
-        const { data, error } = await sb
-            .from('transactions')
-            .insert(item)
-            .select()
-            .single();
+        let data, error;
+        if (editingTxId !== null) {
+            ({ data, error } = await sb
+                .from('transactions')
+                .update(item)
+                .eq('id', editingTxId)
+                .select()
+                .single());
+        } else {
+            ({ data, error } = await sb
+                .from('transactions')
+                .insert(item)
+                .select()
+                .single());
+        }
 
         if (error) throw error;
 
-        tx.unshift(data);
+        if (editingTxId !== null) {
+            tx = tx.map(t => String(t.id) === String(editingTxId) ? data : t);
+        } else {
+            tx.unshift(data);
+        }
+        editingTxId = null;
 
         $('overlay').classList.remove('show');
 
@@ -1767,13 +1802,14 @@ $('txForm').onsubmit = async e => {
 /* DELETE BUTTON EVENT */
 
 $('allRows').addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-edit-id]');
+    if (editBtn) {
+        editTx(editBtn.dataset.editId);
+        return;
+    }
 
-    const btn = e.target.closest('[data-delete-id]');
-
-    if (!btn) return;
-
-    removeTx(btn.dataset.deleteId);
-
+    const deleteBtn = e.target.closest('[data-delete-id]');
+    if (deleteBtn) removeTx(deleteBtn.dataset.deleteId);
 });
 
 /* ==========================================
