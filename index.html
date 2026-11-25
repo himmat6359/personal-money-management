@@ -716,6 +716,8 @@ justify-content:space-between
   .modal h2 { margin-top:2px; }
   .modal input, .modal select { min-height:44px; }
 }
+.record-btn{background:#eef8f3;color:#137a59;padding:7px 9px;border-radius:7px;font-weight:650;margin-right:5px}.tablewrap table{min-width:650px}
+@media(max-width:760px){.nav{display:flex;overflow-x:auto;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}.nav button{flex:0 0 76px}.tablewrap table{min-width:650px}}
 @keyframes mobileSheetIn {
   from { transform:translateY(24px); opacity:.7; }
   to { transform:translateY(0); opacity:1; }
@@ -786,6 +788,9 @@ New to MyMoney?
 <button data-view="transactions"><span class="ico">↕</span> Transactions</button>
 <button data-view="budgets"><span class="ico">◎</span> Budgets</button>
 <button data-view="reports"><span class="ico">▥</span> Reports</button>
+<button data-view="loans"><span class="ico">⇄</span> Lending</button>
+<button data-view="investments"><span class="ico">↗</span> Investments</button>
+<button data-view="donations"><span class="ico">♡</span> Donations</button>
 </nav>
 </div>
 
@@ -1019,6 +1024,73 @@ Export your transactions for spreadsheets or record keeping.
 </div>
 </section>
 
+<!-- LENDING / BORROWING -->
+<section class="view" id="loans">
+  <div class="cards">
+    <div class="card"><div class="hint">Money lent (outstanding)</div><div class="metric" id="lentTotal">₹0</div></div>
+    <div class="card"><div class="hint">Money borrowed (outstanding)</div><div class="metric" id="borrowedTotal">₹0</div></div>
+  </div>
+  <div class="card" style="max-width:760px;margin-bottom:16px">
+    <div class="section-title">Add lending / borrowing record</div>
+    <form id="loanForm">
+      <div class="field"><label>RECORD TYPE</label><select id="loanDirection"><option value="lent">I gave money (Lent)</option><option value="borrowed">I took money (Borrowed)</option></select></div>
+      <div class="field"><label>PERSON NAME</label><input id="loanPerson" required maxlength="100" placeholder="Person name"></div>
+      <div class="field"><label>AMOUNT (₹)</label><input id="loanAmount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div>
+      <div class="field"><label>DATE</label><input id="loanDate" type="date" required></div>
+      <div class="field"><label>EXPECTED RETURN / REPAYMENT DATE</label><input id="loanDueDate" type="date"></div>
+      <div class="field"><label>NOTE</label><input id="loanNote" maxlength="250" placeholder="Optional note"></div>
+      <button class="primary" id="loanSave" type="submit">Save record</button>
+    </form>
+  </div>
+  <div class="card tablecard"><div class="tablehead"><div><div class="section-title">Lending & borrowing history</div><div class="section-sub">Track repayments and remaining balances</div></div></div>
+    <div class="tablewrap"><table><thead><tr><th>Type / Person</th><th>Amount</th><th>Paid back</th><th>Remaining</th><th>Due date</th><th>Action</th></tr></thead><tbody id="loanRows"></tbody></table></div>
+  </div>
+</section>
+
+<!-- INVESTMENTS -->
+<section class="view" id="investments">
+  <div class="cards">
+    <div class="card"><div class="hint">Total invested</div><div class="metric" id="investedTotal">₹0</div></div>
+    <div class="card"><div class="hint">Current value</div><div class="metric" id="investmentValue">₹0</div></div>
+    <div class="card"><div class="hint">Profit / Loss</div><div class="metric" id="investmentPL">₹0</div></div>
+  </div>
+  <div class="card" style="max-width:760px;margin-bottom:16px">
+    <div class="section-title">Add investment</div>
+    <form id="investmentForm">
+      <div class="field"><label>INVESTMENT TYPE</label><select id="investmentType"><option>Stocks</option><option>Mutual Funds</option><option>Gold</option><option>Silver</option><option>FD</option><option>RD</option><option>Other</option></select></div>
+      <div class="field"><label>INVESTMENT NAME</label><input id="investmentName" required maxlength="120" placeholder="e.g. Nifty 50 Index Fund"></div>
+      <div class="field"><label>INVESTED AMOUNT (₹)</label><input id="investedAmount" type="number" min="0.01" step="0.01" required></div>
+      <div class="field"><label>CURRENT VALUE (₹)</label><input id="currentValue" type="number" min="0" step="0.01" required></div>
+      <div class="field"><label>INVESTMENT DATE</label><input id="investmentDate" type="date" required></div>
+      <div class="field"><label>NOTE</label><input id="investmentNote" maxlength="250" placeholder="Optional note"></div>
+      <button class="primary" type="submit">Save investment</button>
+    </form>
+  </div>
+  <div class="card tablecard"><div class="tablehead"><div><div class="section-title">My investments</div><div class="section-sub">Update current value as it changes</div></div></div>
+    <div class="tablewrap"><table><thead><tr><th>Investment</th><th>Invested</th><th>Current value</th><th>Profit / Loss</th><th>Date</th><th>Action</th></tr></thead><tbody id="investmentRows"></tbody></table></div>
+  </div>
+  <p class="notice">Investment values are entered by you; they are not live market prices or investment recommendations.</p>
+</section>
+
+<!-- DONATIONS -->
+<section class="view" id="donations">
+  <div class="cards"><div class="card"><div class="hint">Total donations given</div><div class="metric" id="donationTotal">₹0</div></div><div class="card"><div class="hint">Number of donations</div><div class="metric" id="donationCount">0</div></div></div>
+  <div class="card" style="max-width:760px;margin-bottom:16px">
+    <div class="section-title">Record a donation</div>
+    <form id="donationForm">
+      <div class="field"><label>DONATED TO</label><input id="donationRecipient" required maxlength="120" placeholder="Person / NGO / Organization"></div>
+      <div class="field"><label>AMOUNT (₹)</label><input id="donationAmount" type="number" min="0.01" step="0.01" required></div>
+      <div class="field"><label>DATE</label><input id="donationDate" type="date" required></div>
+      <div class="field"><label>PAYMENT METHOD</label><select id="donationMethod"><option>UPI</option><option>Cash</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div>
+      <div class="field"><label>PURPOSE / NOTE</label><input id="donationPurpose" maxlength="250" placeholder="Optional"></div>
+      <button class="primary" type="submit">Save donation</button>
+    </form>
+  </div>
+  <div class="card tablecard"><div class="tablehead"><div><div class="section-title">Donation history</div><div class="section-sub">Only donations made by you are recorded here</div></div></div>
+    <div class="tablewrap"><table><thead><tr><th>Donated to</th><th>Amount</th><th>Date</th><th>Method</th><th>Purpose</th><th>Action</th></tr></thead><tbody id="donationRows"></tbody></table></div>
+  </div>
+</section>
+
 </main>
 </div>
 
@@ -1151,6 +1223,9 @@ let budget = 0;
 let authMode = 'login';
 let budgetsByMonth = {};
 let editingTxId = null;
+let loanRecords = [];
+let investmentRecords = [];
+let donationRecords = [];
 
 /* ==========================================
    INITIAL VALUES
@@ -1308,7 +1383,7 @@ function renderBudgetList() {
 
 async function loadData() {
 
-    const [tr, br] = await Promise.all([
+    const [tr, br, lr, ir, dr] = await Promise.all([
 
         sb.from('transactions')
             .select('*')
@@ -1316,14 +1391,24 @@ async function loadData() {
             .order('transaction_time', { ascending: false }),
 
         sb.from('budgets')
-            .select('*')
+            .select('*'),
+
+        sb.from('money_loans').select('*').order('created_at', { ascending: false }),
+        sb.from('investments').select('*').order('investment_date', { ascending: false }),
+        sb.from('donations').select('*').order('donation_date', { ascending: false })
 
     ]);
 
     if (tr.error) throw tr.error;
     if (br.error) throw br.error;
+    if (lr.error) throw lr.error;
+    if (ir.error) throw ir.error;
+    if (dr.error) throw dr.error;
 
     tx = tr.data || [];
+    loanRecords = lr.data || [];
+    investmentRecords = ir.data || [];
+    donationRecords = dr.data || [];
 
     budgetsByMonth = {};
 
@@ -1432,6 +1517,8 @@ function render() {
     list.filter(t => t.type === 'expense').forEach(t => {
         reportCats[t.category] = (reportCats[t.category] || 0) + Number(t.amount);
     });
+    renderNewSections();
+
     $('reportSummary').innerHTML = `
         <b>${safe($('monthFilter').value)} Monthly Summary</b>
         <div class="cards" style="margin-top:14px">
@@ -1445,6 +1532,136 @@ function render() {
     `;
 
 }
+
+/* ==========================================
+   LENDING, INVESTMENTS & DONATIONS
+========================================== */
+function renderNewSections() {
+    const lent = loanRecords.filter(x => x.direction === 'lent').reduce((a,x) => a + Number(x.amount) - Number(x.repaid_amount || 0), 0);
+    const borrowed = loanRecords.filter(x => x.direction === 'borrowed').reduce((a,x) => a + Number(x.amount) - Number(x.repaid_amount || 0), 0);
+    $('lentTotal').textContent = money(lent);
+    $('borrowedTotal').textContent = money(borrowed);
+    $('loanRows').innerHTML = loanRecords.length ? loanRecords.map(x => {
+        const remaining = Math.max(0, Number(x.amount) - Number(x.repaid_amount || 0));
+        return `<tr><td><b>${safe(x.person_name)}</b><br><span class="pill">${x.direction === 'lent' ? 'You lent' : 'You borrowed'}</span></td><td>${money(x.amount)}</td><td>${money(x.repaid_amount || 0)}</td><td><b>${money(remaining)}</b></td><td>${safe(x.due_date || '—')}</td><td><button class="record-btn" data-loan-pay="${x.id}">Record payment</button><button class="del" data-loan-delete="${x.id}">Delete</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No lending or borrowing records yet.</td></tr>';
+
+    const invested = investmentRecords.reduce((a,x) => a + Number(x.invested_amount), 0);
+    const current = investmentRecords.reduce((a,x) => a + Number(x.current_value), 0);
+    const pl = current - invested;
+    $('investedTotal').textContent = money(invested);
+    $('investmentValue').textContent = money(current);
+    $('investmentPL').textContent = (pl >= 0 ? '+' : '−') + money(Math.abs(pl));
+    $('investmentPL').className = 'metric ' + (pl >= 0 ? 'positive' : 'negative');
+    $('investmentRows').innerHTML = investmentRecords.length ? investmentRecords.map(x => {
+        const diff = Number(x.current_value) - Number(x.invested_amount);
+        return `<tr><td><b>${safe(x.name)}</b><br><span class="pill">${safe(x.investment_type)}</span></td><td>${money(x.invested_amount)}</td><td>${money(x.current_value)}</td><td class="${diff >= 0 ? 'positive' : 'negative'}">${diff >= 0 ? '+' : '−'}${money(Math.abs(diff))}</td><td>${safe(x.investment_date)}</td><td><button class="record-btn" data-invest-update="${x.id}">Update value</button><button class="del" data-invest-delete="${x.id}">Delete</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No investments added yet.</td></tr>';
+
+    const donated = donationRecords.reduce((a,x) => a + Number(x.amount), 0);
+    $('donationTotal').textContent = money(donated);
+    $('donationCount').textContent = String(donationRecords.length);
+    $('donationRows').innerHTML = donationRecords.length ? donationRecords.map(x =>
+        `<tr><td><b>${safe(x.recipient)}</b></td><td class="amount">${money(x.amount)}</td><td>${safe(x.donation_date)}</td><td>${safe(x.payment_method)}</td><td>${safe(x.purpose || '—')}</td><td><button class="del" data-donation-delete="${x.id}">Delete</button></td></tr>`
+    ).join('') : '<tr><td colspan="6" class="empty">No donations recorded yet.</td></tr>';
+}
+
+async function insertOwned(table, item, listName) {
+    const { data, error } = await sb.from(table).insert({ ...item, user_id: user.id }).select().single();
+    if (error) throw error;
+    if (listName === 'loans') loanRecords.unshift(data);
+    if (listName === 'investments') investmentRecords.unshift(data);
+    if (listName === 'donations') donationRecords.unshift(data);
+    renderNewSections();
+}
+
+async function deleteOwned(table, id, listName) {
+    if (!confirm('Delete this record?')) return;
+    const { error } = await sb.from(table).delete().eq('id', id);
+    if (error) return alert(error.message);
+    if (listName === 'loans') loanRecords = loanRecords.filter(x => String(x.id) !== String(id));
+    if (listName === 'investments') investmentRecords = investmentRecords.filter(x => String(x.id) !== String(id));
+    if (listName === 'donations') donationRecords = donationRecords.filter(x => String(x.id) !== String(id));
+    renderNewSections();
+}
+
+$('loanDate').value = dateStr(today);
+$('investmentDate').value = dateStr(today);
+$('donationDate').value = dateStr(today);
+
+$('loanForm').onsubmit = async e => {
+    e.preventDefault();
+    const btn = $('loanSave'); btn.disabled = true;
+    try {
+        await insertOwned('money_loans', {
+            direction: $('loanDirection').value, person_name: $('loanPerson').value.trim(),
+            amount: Number($('loanAmount').value), repaid_amount: 0,
+            loan_date: $('loanDate').value, due_date: $('loanDueDate').value || null,
+            note: $('loanNote').value.trim()
+        }, 'loans');
+        e.target.reset(); $('loanDate').value = dateStr(new Date());
+    } catch (err) { alert('Could not save lending record: ' + err.message); }
+    finally { btn.disabled = false; }
+};
+
+$('investmentForm').onsubmit = async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true;
+    try {
+        await insertOwned('investments', {
+            investment_type: $('investmentType').value, name: $('investmentName').value.trim(),
+            invested_amount: Number($('investedAmount').value), current_value: Number($('currentValue').value),
+            investment_date: $('investmentDate').value, note: $('investmentNote').value.trim()
+        }, 'investments');
+        e.target.reset(); $('investmentDate').value = dateStr(new Date());
+    } catch (err) { alert('Could not save investment: ' + err.message); }
+    finally { btn.disabled = false; }
+};
+
+$('donationForm').onsubmit = async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true;
+    try {
+        await insertOwned('donations', {
+            recipient: $('donationRecipient').value.trim(), amount: Number($('donationAmount').value),
+            donation_date: $('donationDate').value, payment_method: $('donationMethod').value,
+            purpose: $('donationPurpose').value.trim()
+        }, 'donations');
+        e.target.reset(); $('donationDate').value = dateStr(new Date());
+    } catch (err) { alert('Could not save donation: ' + err.message); }
+    finally { btn.disabled = false; }
+};
+
+document.addEventListener('click', async e => {
+    const pay = e.target.closest('[data-loan-pay]');
+    if (pay) {
+        const rec = loanRecords.find(x => String(x.id) === pay.dataset.loanPay);
+        if (!rec) return;
+        const remaining = Number(rec.amount) - Number(rec.repaid_amount || 0);
+        const value = prompt('Enter amount received / repaid now (remaining ' + money(remaining) + '):');
+        if (value === null) return;
+        const payment = Number(value);
+        if (!Number.isFinite(payment) || payment <= 0 || payment > remaining) return alert('Enter a valid amount not greater than the remaining balance.');
+        const { data, error } = await sb.from('money_loans').update({ repaid_amount: Number(rec.repaid_amount || 0) + payment }).eq('id', rec.id).select().single();
+        if (error) return alert(error.message);
+        loanRecords = loanRecords.map(x => x.id === rec.id ? data : x); renderNewSections();
+        return;
+    }
+    const ld = e.target.closest('[data-loan-delete]'); if (ld) return deleteOwned('money_loans', ld.dataset.loanDelete, 'loans');
+    const iu = e.target.closest('[data-invest-update]');
+    if (iu) {
+        const rec = investmentRecords.find(x => String(x.id) === iu.dataset.investUpdate); if (!rec) return;
+        const value = prompt('Enter updated current value (₹):', String(rec.current_value));
+        if (value === null) return;
+        const amount = Number(value); if (!Number.isFinite(amount) || amount < 0) return alert('Enter a valid current value.');
+        const { data, error } = await sb.from('investments').update({ current_value: amount }).eq('id', rec.id).select().single();
+        if (error) return alert(error.message);
+        investmentRecords = investmentRecords.map(x => x.id === rec.id ? data : x); renderNewSections();
+        return;
+    }
+    const id = e.target.closest('[data-invest-delete]'); if (id) return deleteOwned('investments', id.dataset.investDelete, 'investments');
+    const dd = e.target.closest('[data-donation-delete]'); if (dd) return deleteOwned('donations', dd.dataset.donationDelete, 'donations');
+});
 
 /* ==========================================
    TRANSACTION TABLE
@@ -1579,7 +1796,10 @@ function go(v) {
         dashboard: 'Overview',
         transactions: 'Transactions',
         budgets: 'Budgets',
-        reports: 'Reports'
+        reports: 'Reports',
+        loans: 'Lending / Borrowing',
+        investments: 'Investments',
+        donations: 'Donations'
     })[v];
 
 }
@@ -1766,6 +1986,9 @@ $('logoutBtn').onclick = async () => {
     user = null;
     tx = [];
     budgetsByMonth = {};
+    loanRecords = [];
+    investmentRecords = [];
+    donationRecords = [];
 
     showOnly('authScreen');
 
