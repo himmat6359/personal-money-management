@@ -466,7 +466,21 @@ background:#fff;
 border-radius:16px;
 padding:24px;
 width:min(440px,100%);
+max-height:90dvh;
+overflow-y:auto;
+overscroll-behavior:contain;
 box-shadow:0 20px 70px #0003
+}
+
+/* Keep transaction actions visible while scrolling long forms */
+#txForm > div:last-child{
+position:sticky;
+bottom:-1px;
+background:#fff;
+padding:12px 0 4px;
+margin-top:14px !important;
+border-top:1px solid var(--line);
+z-index:2;
 }
 
 .modal h2{
@@ -712,9 +726,16 @@ justify-content:space-between
   .overlay { align-items:flex-end; padding:0; }
   .modal {
     width:100%; max-width:none; max-height:90dvh; overflow-y:auto;
-    border-radius:20px 20px 0 0; padding:22px 18px calc(20px + env(safe-area-inset-bottom));
+    border-radius:20px 20px 0 0; padding:22px 18px calc(16px + env(safe-area-inset-bottom));
     animation:mobileSheetIn .2s ease-out;
   }
+  #txForm > div:last-child {
+    position:sticky; bottom:calc(-16px - env(safe-area-inset-bottom));
+    margin-left:-18px !important; margin-right:-18px !important;
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+    background:#fff; box-shadow:0 -6px 16px rgba(20,35,50,.06);
+  }
+  #txForm > div:last-child button { min-height:44px; }
   .modal h2 { margin-top:2px; }
   .modal input, .modal select { min-height:44px; }
 }
