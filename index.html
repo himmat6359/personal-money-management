@@ -440,7 +440,9 @@ font-weight:650
 }
 
 .field input,
-.field select{width:100%}
+.field select,
+.field textarea{width:100%}
+.field textarea{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font:inherit;resize:vertical;min-height:120px}
 
 .del{color:var(--red);background:transparent}
 .edit{color:var(--blue);background:#eef2ff;padding:6px 9px;border-radius:7px;margin-right:6px;font-weight:650}
@@ -791,6 +793,7 @@ New to MyMoney?
 <button data-view="loans"><span class="ico">⇄</span> Lending</button>
 <button data-view="investments"><span class="ico">↗</span> Investments</button>
 <button data-view="donations"><span class="ico">♡</span> Donations</button>
+<button data-view="notes"><span class="ico">✎</span> Notes</button>
 </nav>
 </div>
 
@@ -1072,6 +1075,26 @@ Export your transactions for spreadsheets or record keeping.
   <p class="notice">Investment values are entered by you; they are not live market prices or investment recommendations.</p>
 </section>
 
+<!-- NOTES -->
+<section class="view" id="notes">
+  <div class="card" style="max-width:820px;margin-bottom:16px">
+    <div class="section-title" id="noteFormTitle">Write a note</div>
+    <div class="section-sub">Save personal reminders, ideas and important information.</div>
+    <form id="noteForm">
+      <div class="field"><label>NOTE TITLE</label><input id="noteTitle" required maxlength="120" placeholder="e.g. Monthly payment reminder"></div>
+      <div class="field"><label>NOTE DETAILS</label><textarea id="noteContent" required maxlength="10000" rows="5" placeholder="Write your note here..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="secondary" id="cancelNoteEdit" type="button" style="display:none">Cancel edit</button>
+        <button class="primary" id="saveNoteBtn" type="submit">Save note</button>
+      </div>
+    </form>
+  </div>
+  <div class="card tablecard">
+    <div class="tablehead"><div><div class="section-title">My notes</div><div class="section-sub">Only you can access notes saved in your account.</div></div></div>
+    <div id="notesList" style="padding:16px"><div class="empty">No notes yet. Write your first note above.</div></div>
+  </div>
+</section>
+
 <!-- DONATIONS -->
 <section class="view" id="donations">
   <div class="cards"><div class="card"><div class="hint">Total donations given</div><div class="metric" id="donationTotal">₹0</div></div><div class="card"><div class="hint">Number of donations</div><div class="metric" id="donationCount">0</div></div></div>
@@ -1226,6 +1249,8 @@ let editingTxId = null;
 let loanRecords = [];
 let investmentRecords = [];
 let donationRecords = [];
+let noteRecords = [];
+let editingNoteId = null;
 
 /* ==========================================
    INITIAL VALUES
@@ -1383,7 +1408,7 @@ function renderBudgetList() {
 
 async function loadData() {
 
-    const [tr, br, lr, ir, dr] = await Promise.all([
+    const [tr, br, lr, ir, dr, nr] = await Promise.all([
 
         sb.from('transactions')
             .select('*')
@@ -1395,7 +1420,8 @@ async function loadData() {
 
         sb.from('money_loans').select('*').order('created_at', { ascending: false }),
         sb.from('investments').select('*').order('investment_date', { ascending: false }),
-        sb.from('donations').select('*').order('donation_date', { ascending: false })
+        sb.from('donations').select('*').order('donation_date', { ascending: false }),
+        sb.from('notes').select('*').order('updated_at', { ascending: false })
 
     ]);
 
@@ -1404,11 +1430,13 @@ async function loadData() {
     if (lr.error) throw lr.error;
     if (ir.error) throw ir.error;
     if (dr.error) throw dr.error;
+    if (nr.error) throw nr.error;
 
     tx = tr.data || [];
     loanRecords = lr.data || [];
     investmentRecords = ir.data || [];
     donationRecords = dr.data || [];
+    noteRecords = nr.data || [];
 
     budgetsByMonth = {};
 
@@ -1618,6 +1646,84 @@ $('investmentForm').onsubmit = async e => {
     finally { btn.disabled = false; }
 };
 
+$('noteForm').onsubmit = async e => {
+    e.preventDefault();
+    if (!user) return;
+    const btn = $('saveNoteBtn'); btn.disabled = true;
+    const item = { user_id: user.id, title: $('noteTitle').value.trim(), content: $('noteContent').value.trim(), updated_at: new Date().toISOString() };
+    try {
+        let result;
+        if (editingNoteId !== null) {
+            result = await sb.from('notes').update(item).eq('id', editingNoteId).select().single();
+        } else {
+            result = await sb.from('notes').insert(item).select().single();
+        }
+        if (result.error) throw result.error;
+        if (editingNoteId !== null) {
+            noteRecords = noteRecords.map(n => String(n.id) === String(editingNoteId) ? result.data : n);
+        } else {
+            noteRecords.unshift(result.data);
+        }
+        resetNoteForm();
+        renderNotes();
+    } catch (err) {
+        alert('Could not save note: ' + err.message);
+    } finally { btn.disabled = false; }
+};
+
+function resetNoteForm() {
+    editingNoteId = null;
+    $('noteForm').reset();
+    $('noteFormTitle').textContent = 'Write a note';
+    $('saveNoteBtn').textContent = 'Save note';
+    $('cancelNoteEdit').style.display = 'none';
+}
+
+$('cancelNoteEdit').onclick = resetNoteForm;
+
+function renderNotes() {
+    const host = $('notesList');
+    if (!noteRecords.length) {
+        host.innerHTML = '<div class="empty">No notes yet. Write your first note above.</div>';
+        return;
+    }
+    host.innerHTML = noteRecords.map(n => {
+        const date = n.updated_at ? new Date(n.updated_at).toLocaleString('en-IN') : '';
+        return '<article class="card" style="box-shadow:none;margin-bottom:12px">' +
+          '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">' +
+            '<div style="min-width:0;flex:1"><div class="section-title">' + safe(n.title) + '</div>' +
+            '<div class="section-sub">Last updated: ' + safe(date) + '</div></div>' +
+            '<div class="row-actions"><button class="edit" type="button" data-note-edit="' + safe(n.id) + '">Edit</button> ' +
+            '<button class="del" type="button" data-note-delete="' + safe(n.id) + '">Delete</button></div></div>' +
+          '<div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin-top:12px">' + safe(n.content) + '</div></article>';
+    }).join('');
+}
+
+$('notesList').addEventListener('click', async e => {
+    const edit = e.target.closest('[data-note-edit]');
+    if (edit) {
+        const note = noteRecords.find(n => String(n.id) === edit.dataset.noteEdit);
+        if (!note) return;
+        editingNoteId = note.id;
+        $('noteTitle').value = note.title;
+        $('noteContent').value = note.content;
+        $('noteFormTitle').textContent = 'Edit note';
+        $('saveNoteBtn').textContent = 'Update note';
+        $('cancelNoteEdit').style.display = 'inline-block';
+        $('noteTitle').focus();
+        return;
+    }
+    const del = e.target.closest('[data-note-delete]');
+    if (del) {
+        if (!confirm('Delete this note?')) return;
+        const { error } = await sb.from('notes').delete().eq('id', del.dataset.noteDelete);
+        if (error) return alert('Could not delete note: ' + error.message);
+        noteRecords = noteRecords.filter(n => String(n.id) !== del.dataset.noteDelete);
+        if (String(editingNoteId) === del.dataset.noteDelete) resetNoteForm();
+        renderNotes();
+    }
+});
+
 $('donationForm').onsubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true;
@@ -1799,7 +1905,8 @@ function go(v) {
         reports: 'Reports',
         loans: 'Lending / Borrowing',
         investments: 'Investments',
-        donations: 'Donations'
+        donations: 'Donations',
+        notes: 'Notes'
     })[v];
 
 }
@@ -1989,6 +2096,7 @@ $('logoutBtn').onclick = async () => {
     loanRecords = [];
     investmentRecords = [];
     donationRecords = [];
+    noteRecords = [];
 
     showOnly('authScreen');
 
