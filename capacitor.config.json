@@ -1,0 +1,11 @@
+{
+  "appId": "com.himmat.mymoney",
+  "appName": "MyMoney",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
